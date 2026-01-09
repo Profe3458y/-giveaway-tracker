@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giveaway Tracker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --color-primary: #0088cc;
+            --color-primary-hover: #0077b3;
+            --color-steam: #1b2838;
+            --color-steam-hover: #2a475e;
+            --color-epic: #662d91;
+            --color-epic-hover: #7d3ba8;
+            --color-gog: #2d2d2d;
+            --color-gog-hover: #454545;
+            --color-dlc: #ff9500;
+            --color-dlc-hover: #ffb143;
+            --color-other: #666666;
+            --color-other-hover: #808080;
+            --color-bg: #0a0a0a;
+            --color-surface: #1a1a1a;
+            --color-border: #2a2a2a;
+            --color-text: #ffffff;
+            --color-text-secondary: #b0b0b0;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #0066aa 100%);
+            padding: var(--spacing-lg);
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            flex-shrink: 0;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: transparent;
+            border: 2px solid transparent;
+            color: var(--color-text-secondary);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: var(--color-border);
+        }
+
+        .tab-btn.active {
+            border-color: var(--color-primary);
+            background: rgba(0, 136, 204, 0.1);
+            color: var(--color-primary);
+        }
+
+        .tab-btn[data-platform="steam"].active {
+            border-color: var(--color-steam);
+            background: rgba(27, 40, 56, 0.4);
+            color: #b1d4e8;
+        }
+
+        .tab-btn[data-platform="epic"].active {
+            border-color: var(--color-epic);
+            background: rgba(102, 45, 145, 0.3);
+            color: #d4a5e8;
+        }
+
+        .tab-btn[data-platform="gog"].active {
+            border-color: var(--color-gog);
+            background: rgba(45, 45, 45, 0.5);
+            color: #c0c0c0;
+        }
+
+        .tab-btn[data-platform="dlc"].active {
+            border-color: var(--color-dlc);
+            background: rgba(255, 149, 0, 0.2);
+            color: var(--color-dlc);
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+        }
+
+        .giveaway-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .giveaway-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .giveaway-card.steam {
+            border-color: var(--color-steam);
+        }
+
+        .giveaway-card.steam:hover {
+            box-shadow: 0 4px 12px rgba(27, 40, 56, 0.4);
+        }
+
+        .giveaway-card.epic {
+            border-color: var(--color-epic);
+        }
+
+        .giveaway-card.epic:hover {
+            box-shadow: 0 4px 12px rgba(102, 45, 145, 0.3);
+        }
+
+        .giveaway-card.gog {
+            border-color: var(--color-gog);
+        }
+
+        .giveaway-card.gog:hover {
+            box-shadow: 0 4px 12px rgba(45, 45, 45, 0.5);
+        }
+
+        .giveaway-card.dlc {
+            border-color: var(--color-dlc);
+        }
+
+        .giveaway-card.dlc:hover {
+            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.2);
+        }
+
+        .giveaway-card.other {
+            border-color: var(--color-other);
+        }
+
+        .giveaway-card.other:hover {
+            box-shadow: 0 4px 12px rgba(102, 102, 102, 0.3);
+        }
+
+        .giveaway-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .giveaway-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text);
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .giveaway-platform {
+            background: rgba(0, 136, 204, 0.2);
+            color: var(--color-primary);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            flex-shrink: 0;
+            margin-left: var(--spacing-sm);
+        }
+
+        .giveaway-platform.steam {
+            background: rgba(27, 40, 56, 0.3);
+            color: #b1d4e8;
+        }
+
+        .giveaway-platform.epic {
+            background: rgba(102, 45, 145, 0.3);
+            color: #d4a5e8;
+        }
+
+        .giveaway-platform.gog {
+            background: rgba(45, 45, 45, 0.5);
+            color: #c0c0c0;
+        }
+
+        .giveaway-platform.dlc {
+            background: rgba(255, 149, 0, 0.2);
+            color: var(--color-dlc);
+        }
+
+        .giveaway-platform.other {
+            background: rgba(102, 102, 102, 0.3);
+            color: #cccccc;
+        }
+
+        .giveaway-type {
+            display: inline-block;
+            background: rgba(50, 199, 89, 0.2);
+            color: #32c759;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .giveaway-type.steam {
+            background: rgba(27, 40, 56, 0.3);
+            color: #b1d4e8;
+        }
+
+        .giveaway-type.epic {
+            background: rgba(102, 45, 145, 0.3);
+            color: #d4a5e8;
+        }
+
+        .giveaway-type.gog {
+            background: rgba(45, 45, 45, 0.5);
+            color: #c0c0c0;
+        }
+
+        .giveaway-type.dlc {
+            background: rgba(255, 149, 0, 0.3);
+            color: #ffb143;
+        }
+
+        .giveaway-type.other {
+            background: rgba(102, 102, 102, 0.3);
+            color: #cccccc;
+        }
+
+        .giveaway-desc {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.4;
+        }
+
+        .giveaway-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .giveaway-time {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .giveaway-btn {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .giveaway-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: var(--spacing-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: var(--color-text-secondary);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.5;
+        }
+
+        .refresh-btn {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: var(--spacing-md);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --color-bg: #f5f5f5;
+                --color-surface: #ffffff;
+                --color-border: #e0e0e0;
+                --color-text: #000000;
+                --color-text-secondary: #666666;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎁 Раздачи Игр</h1>
+        <p>Актуальные промокоды и ключи</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-platform="all">Все</button>
+        <button class="tab-btn" data-platform="steam">🎮 Steam</button>
+        <button class="tab-btn" data-platform="epic">🟣 Epic</button>
+        <button class="tab-btn" data-platform="gog">🎲 GOG</button>
+        <button class="tab-btn" data-platform="dlc">📦 DLC</button>
+        <button class="tab-btn" data-platform="other">🌐 Прочее</button>
+    </div>
+
+    <div class="content" id="content">
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>Загружаю раздачи...</span>
+        </div>
+    </div>
+
+    <script>
+        let allGiveaways = [];
+        let selectedPlatform = 'all';
+
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor('#0088cc');
+
+        // ✅ ИСПРАВЛЕНО: берём PLATFORMS (множественное число)
+        function getPlatformCategory(platformsRaw = '') {
+            const p = platformsRaw.toLowerCase();
+
+            // Проверяем в порядке приоритета
+            if (p.includes('steam')) {
+                return { category: 'steam', emoji: '🎮 Steam' };
+            }
+
+            if (p.includes('epic')) {
+                return { category: 'epic', emoji: '🟣 Epic' };
+            }
+
+            if (p.includes('gog')) {
+                return { category: 'gog', emoji: '🎲 GOG' };
+            }
+
+            return { category: 'other', emoji: '🌐 Прочее' };
+        }
+
+        // Функция получения раздач с RapidAPI
+        async function fetchGiveaways() {
+            try {
+                const response = await fetch(
+                    'https://gamerpower.p.rapidapi.com/api/filter?platform=epic-games-store,steam,gog&type=game.loot.beta.dlc',
+                    {
+                        method: 'GET',
+                        headers: {
+                            'x-rapidapi-key': '9b871d15bemsh70c5d83bbfc9127p1f6c4ejsn193cfb222895',
+                            'x-rapidapi-host': 'gamerpower.p.rapidapi.com'
+                        }
+                    }
+                );
+
+                let giveaways = [];
+                if (response.ok) {
+                    const data = await response.json();
+                    giveaways = Array.isArray(data) ? data : [];
+                }
+
+                // 🔥 ШАГ 1: НОРМАЛИЗАЦИЯ (map)
+                giveaways = giveaways.map(g => {
+                    // ✅ ИСПОЛЬЗУЕМ platforms (множественное число)!
+                    const platform = getPlatformCategory(g.platforms || '');
+
+                    const isDLC =
+                        (g.type || '').toLowerCase() === 'dlc' ||
+                        /dlc|expansion|add[- ]?on/i.test(g.title || '');
+
+                    return {
+                        ...g,
+                        platformCategory: platform.category,
+                        platformEmoji: platform.emoji,
+                        isDLC
+                    };
+                });
+
+                console.log('After normalization:');
+                console.table(
+                    giveaways.slice(0, 10).map(g => ({
+                        title: g.title?.substring(0, 30),
+                        platforms: g.platforms,
+                        category: g.platformCategory,
+                        isDLC: g.isDLC
+                    }))
+                );
+
+                // 🔥 ШАГ 2: ФИЛЬТРАЦИЯ ПО ДАТЕ (filter)
+                const now = new Date();
+                giveaways = giveaways.filter(g => {
+                    try {
+                        const endDate = g.end_date;
+                        if (endDate === 'N/A' || !endDate) return true;
+                        return new Date(endDate) > now;
+                    } catch {
+                        return true;
+                    }
+                });
+
+                // 🔥 ШАГ 3: СОРТИРОВКА И СОХРАНЕНИЕ
+                giveaways.sort((a, b) => {
+                    try {
+                        const aDate = a.end_date === 'N/A' ? new Date(9999, 0) : new Date(a.end_date);
+                        const bDate = b.end_date === 'N/A' ? new Date(9999, 0) : new Date(b.end_date);
+                        return aDate - bDate;
+                    } catch {
+                        return 0;
+                    }
+                });
+                allGiveaways = giveaways.slice(0, 100);
+                
+                console.log('Final count:', allGiveaways.length);
+                
+                // 🔥 ШАГ 4: ОТОБРАЖЕНИЕ (render)
+                renderGiveaways();
+            } catch (error) {
+                console.error('Ошибка загрузки раздач:', error);
+                allGiveaways = [];
+                renderGiveaways();
+            }
+        }
+
+        // Функция отображения раздач
+        function renderGiveaways() {
+            const content = document.getElementById('content');
+            
+            let filtered = allGiveaways;
+            
+            // Фильтрация по вкладкам
+            if (selectedPlatform === 'dlc') {
+                filtered = allGiveaways.filter(g => g.isDLC);
+            } else if (selectedPlatform === 'all') {
+                filtered = allGiveaways;
+            } else {
+                filtered = allGiveaways.filter(
+                    g => g.platformCategory === selectedPlatform && !g.isDLC
+                );
+            }
+
+            if (!filtered || filtered.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>Раздач нет в этой категории</div>
+                        <button class="refresh-btn" onclick="fetchGiveaways()">Обновить данные</button>
+                    </div>
+                `;
+                return;
+            }
+
+            content.innerHTML = filtered.map(giveaway => {
+                try {
+                    const endDate = giveaway.end_date;
+                    let daysLeft = 0;
+                    
+                    if (endDate !== 'N/A') {
+                        const now = new Date();
+                        const end = new Date(endDate);
+                        daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+                    }
+                    
+                    // ✅ ПЛАТФОРМА КАК ТЕГ
+                    const tagText = giveaway.isDLC 
+                        ? '📦 DLC'
+                        : giveaway.platformEmoji;
+                    
+                    const tagClass = giveaway.isDLC 
+                        ? 'dlc'
+                        : giveaway.platformCategory;
+                    
+                    const cardClass = giveaway.isDLC
+                        ? 'dlc'
+                        : giveaway.platformCategory;
+                    
+                    const url = giveaway.open_giveaway_url || '#';
+
+                    return `
+                        <div class="giveaway-card ${cardClass}">
+                            <div class="giveaway-header">
+                                <div class="giveaway-title">${escapeHtml(giveaway.title || 'Неизвестная раздача')}</div>
+                                <span class="giveaway-platform ${cardClass}">${escapeHtml(giveaway.platformCategory)}</span>
+                            </div>
+                            <span class="giveaway-type ${tagClass}">${escapeHtml(tagText)}</span>
+                            ${giveaway.description ? `<div class="giveaway-desc">${escapeHtml(giveaway.description)}</div>` : ''}
+                            <div class="giveaway-meta">
+                                <div class="giveaway-time">
+                                    📅 ${endDate === 'N/A' ? '∞' : daysLeft > 0 ? `${daysLeft} дн.` : daysLeft === 0 ? 'Сегодня!' : 'Истекло'}
+                                </div>
+                                <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="giveaway-btn">
+                                    Перейти
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('Ошибка рендера карты:', e);
+                    return '';
+                }
+            }).join('');
+        }
+
+        // Функция экранирования HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Обработчики табов
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedPlatform = btn.dataset.platform;
+                renderGiveaways();
+            });
+        });
+
+        // Загружаем раздачи при старте
+        fetchGiveaways();
+
+        // Автообновление каждые 60 секунд
+        setInterval(fetchGiveaways, 60 * 1000);
+    </script>
+</body>
+</html>
