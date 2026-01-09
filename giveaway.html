@@ -411,16 +411,16 @@
         let allGiveaways = [];
         let selectedPlatform = 'all';
 
-        // Инициализация Telegram WebApp
+        
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.setHeaderColor('#0088cc');
 
-        // ✅ ИСПРАВЛЕНО: берём PLATFORMS (множественное число)
+        
         function getPlatformCategory(platformsRaw = '') {
             const p = platformsRaw.toLowerCase();
 
-            // Проверяем в порядке приоритета
+            
             if (p.includes('steam')) {
                 return { category: 'steam', emoji: '🎮 Steam' };
             }
@@ -436,7 +436,7 @@
             return { category: 'other', emoji: '🌐 Прочее' };
         }
 
-        // Функция получения раздач с RapidAPI
+        
         async function fetchGiveaways() {
             try {
                 const response = await fetch(
@@ -456,9 +456,9 @@
                     giveaways = Array.isArray(data) ? data : [];
                 }
 
-                // 🔥 ШАГ 1: НОРМАЛИЗАЦИЯ (map)
+               
                 giveaways = giveaways.map(g => {
-                    // ✅ ИСПОЛЬЗУЕМ platforms (множественное число)!
+                    
                     const platform = getPlatformCategory(g.platforms || '');
 
                     const isDLC =
@@ -483,7 +483,7 @@
                     }))
                 );
 
-                // 🔥 ШАГ 2: ФИЛЬТРАЦИЯ ПО ДАТЕ (filter)
+                
                 const now = new Date();
                 giveaways = giveaways.filter(g => {
                     try {
@@ -495,7 +495,7 @@
                     }
                 });
 
-                // 🔥 ШАГ 3: СОРТИРОВКА И СОХРАНЕНИЕ
+                
                 giveaways.sort((a, b) => {
                     try {
                         const aDate = a.end_date === 'N/A' ? new Date(9999, 0) : new Date(a.end_date);
@@ -509,7 +509,7 @@
                 
                 console.log('Final count:', allGiveaways.length);
                 
-                // 🔥 ШАГ 4: ОТОБРАЖЕНИЕ (render)
+                
                 renderGiveaways();
             } catch (error) {
                 console.error('Ошибка загрузки раздач:', error);
@@ -518,13 +518,13 @@
             }
         }
 
-        // Функция отображения раздач
+        
         function renderGiveaways() {
             const content = document.getElementById('content');
             
             let filtered = allGiveaways;
             
-            // Фильтрация по вкладкам
+            
             if (selectedPlatform === 'dlc') {
                 filtered = allGiveaways.filter(g => g.isDLC);
             } else if (selectedPlatform === 'all') {
@@ -557,7 +557,7 @@
                         daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
                     }
                     
-                    // ✅ ПЛАТФОРМА КАК ТЕГ
+                    
                     const tagText = giveaway.isDLC 
                         ? '📦 DLC'
                         : giveaway.platformEmoji;
@@ -597,7 +597,7 @@
             }).join('');
         }
 
-        // Функция экранирования HTML
+        
         function escapeHtml(text) {
             const map = {
                 '&': '&amp;',
@@ -609,7 +609,7 @@
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Обработчики табов
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -619,10 +619,10 @@
             });
         });
 
-        // Загружаем раздачи при старте
+        
         fetchGiveaways();
 
-        // Автообновление каждые 60 секунд
+        
         setInterval(fetchGiveaways, 60 * 1000);
     </script>
 </body>
